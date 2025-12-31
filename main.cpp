@@ -2,222 +2,74 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
-#include <ctime>
-#include <cmath>
 
 using namespace std;
 
-const int MAX_SLOTS = 20;
+const int MAX_SLOTS = 10;
 const string DATA_FILE = "parking_data.txt";
 
-/* ---------- NESTED STRUCT ---------- */
-struct TimeInfo {
-    time_t entry;
-};
-
 struct Ticket {
-    int slotID;
+    int id;
     string plate;
-    int type;          // 1 Bike, 2 LTV, 3 HTV
+    int type;     // 1 = Bike, 2 = LTV, 3 = HTV
     bool occupied;
-    TimeInfo time;     // nested structure
 };
 
-/* ---------- FUNCTION PROTOTYPES ---------- */
-void initialize(Ticket lot[], int n);
+void populate(Ticket lot[], int n);
 void loadFromFile(Ticket lot[], int n);
 void saveToFile(Ticket lot[], int n);
-
-void menu();
-void inputRecord(Ticket lot[], int n);
 void display(Ticket lot[], int n);
-int search(Ticket lot[], int n);
-void updateRecord(Ticket lot[], int n);
-void deleteRecord(Ticket lot[], int n);
-void sortByPlate(Ticket lot[], int n);
+void AddRecord(Ticket lot[], int n);
+int DeleteRecord(Ticket lot[], int n);
+int searchRecord(Ticket lot[], int n);
+int updateRecord(Ticket lot[], int n);
 
-/* ---------- MAIN ---------- */
 int main() {
+    int n = MAX_SLOTS;
     Ticket lot[MAX_SLOTS];
+
+    populate(lot, n);
+
     int choice;
-
-    initialize(lot, MAX_SLOTS);
-
     do {
-        menu();
+        cout << "\n---- SIMPLE PARKING MENU ----\n";
+        display(lot, n);
+        cout << "\n1) Park vehicle (Add)\n";
+        cout << "2) Exit vehicle (Remove)\n";
+        cout << "3) Search vehicle\n";
+        cout << "4) Update vehicle info\n";
+        cout << "5) Save & Exit\n";
+        cout << "Choose: ";
         cin >> choice;
 
-        switch (choice) {
-        case 1:
-            inputRecord(lot, MAX_SLOTS);
-            break;
-        case 2:
-            deleteRecord(lot, MAX_SLOTS);
-            break;
-        case 3:
-            search(lot, MAX_SLOTS);
-            break;
-        case 4:
-            updateRecord(lot, MAX_SLOTS);
-            break;
-        case 5:
-            sortByPlate(lot, MAX_SLOTS);
-            cout << "Sorted by plate.\n";
-            break;
-        case 6:
-            saveToFile(lot, MAX_SLOTS);
-            cout << "Saved & Exit.\n";
-            break;
-        default:
-            cout << "Invalid choice!\n";
+        if (choice == 1) {
+            AddRecord(lot, n);
+        } else if (choice == 2) {
+            int res = DeleteRecord(lot, n);
+            if (res == 0) cout << "Removed and saved.\n";
+        } else if (choice == 3) {
+            searchRecord(lot, n);
+        } else if (choice == 4) {
+            updateRecord(lot, n);
+        } else if (choice == 5) {
+            saveToFile(lot, n);
+            cout << "Saved to file. Bye!\n";
+        } else {
+            cout << "Invalid choice. Try again.\n";
         }
-
-    } while (choice != 6);
+    } while (choice != 5);
 
     return 0;
 }
 
-/* ---------- FUNCTIONS ---------- */
-
-void menu() {
-    cout << "\n--- PARKING SYSTEM MENU ---\n";
-    cout << "1. Park Vehicle\n";
-    cout << "2. Remove Vehicle\n";
-    cout << "3. Search Vehicle\n";
-    cout << "4. Update Vehicle\n";
-    cout << "5. Sort by Plate\n";
-    cout << "6. Save & Exit\n";
-    cout << "Enter choice: ";
-}
-
-void initialize(Ticket lot[], int n) {
+void populate(Ticket lot[], int n) {
     for (int i = 0; i < n; i++) {
-        lot[i].slotID = i + 1;
+        lot[i].id = i + 1;
         lot[i].plate = "EMPTY";
         lot[i].type = 0;
         lot[i].occupied = false;
-        lot[i].time.entry = 0;
     }
     loadFromFile(lot, n);
-}
-
-void inputRecord(Ticket lot[], int n) {
-    for (int i = 0; i < n; i++) {
-        if (!lot[i].occupied) {
-            cout << "Enter Plate: ";
-            cin >> lot[i].plate;
-
-            cout << "Type (1=Bike, 2=LTV, 3=HTV): ";
-            cin >> lot[i].type;
-
-            if (lot[i].type < 1 || lot[i].type > 3) {
-                cout << "Invalid type. Set to LTV.\n";
-                lot[i].type = 2;
-            }
-
-            lot[i].occupied = true;
-            lot[i].time.entry = time(0);
-            saveToFile(lot, n);
-            cout << "Vehicle Parked at Slot " << lot[i].slotID << endl;
-            return;
-        }
-    }
-    cout << "Parking Full!\n";
-}
-
-void display(Ticket lot[], int n) {
-    cout << "\n--- PARKING STATUS ---\n";
-    for (int i = 0; i < n; i++) {
-        if (lot[i].occupied)
-            cout << "[" << lot[i].slotID << ":" << lot[i].plate << "] ";
-        else
-            cout << "[Slot " << lot[i].slotID << "] ";
-
-        if ((i + 1) % 5 == 0) cout << endl;
-    }
-}
-
-int search(Ticket lot[], int n) {
-    string plate;
-    cout << "Enter Plate: ";
-    cin >> plate;
-
-    for (int i = 0; i < n; i++) {
-        if (lot[i].occupied && lot[i].plate == plate) {
-            cout << "Found at Slot " << lot[i].slotID << endl;
-            cout << "Entry Time: " << ctime(&lot[i].time.entry);
-            return 1;
-        }
-    }
-    cout << "Vehicle Not Found.\n";
-    return 0;
-}
-
-void updateRecord(Ticket lot[], int n) {
-    string plate;
-    cout << "Enter Plate to Update: ";
-    cin >> plate;
-
-    for (int i = 0; i < n; i++) {
-        if (lot[i].occupied && lot[i].plate == plate) {
-            cout << "New Plate: ";
-            cin >> lot[i].plate;
-            cout << "New Type (1-3): ";
-            cin >> lot[i].type;
-            saveToFile(lot, n);
-            cout << "Updated Successfully.\n";
-            return;
-        }
-    }
-    cout << "Vehicle Not Found.\n";
-}
-
-void deleteRecord(Ticket lot[], int n) {
-    string plate;
-    cout << "Enter Plate to Remove: ";
-    cin >> plate;
-
-    for (int i = 0; i < n; i++) {
-        if (lot[i].occupied && lot[i].plate == plate) {
-            double hours = difftime(time(0), lot[i].time.entry) / 3600;
-            int billHours = max(1, (int)ceil(hours));
-
-            int rate = (lot[i].type == 1 ? 20 : lot[i].type == 2 ? 50 : 100);
-            cout << "Bill: " << billHours * rate << " Rs\n";
-
-            lot[i].occupied = false;
-            lot[i].plate = "EMPTY";
-            saveToFile(lot, n);
-            return;
-        }
-    }
-    cout << "Vehicle Not Found.\n";
-}
-
-/* ---------- BUBBLE SORT ---------- */
-void sortByPlate(Ticket lot[], int n) {
-    for (int i = 0; i < n - 1; i++) {
-        for (int j = 0; j < n - i - 1; j++) {
-            if (lot[j].plate > lot[j + 1].plate) {
-                swap(lot[j], lot[j + 1]);
-            }
-        }
-    }
-}
-
-/* ---------- FILE HANDLING ---------- */
-void saveToFile(Ticket lot[], int n) {
-    ofstream fout(DATA_FILE);
-    for (int i = 0; i < n; i++) {
-        if (lot[i].occupied) {
-            fout << lot[i].slotID << " "
-                 << lot[i].plate << " "
-                 << lot[i].type << " "
-                 << lot[i].time.entry << " "
-                 << lot[i].occupied << endl;
-        }
-    }
-    fout.close();
 }
 
 void loadFromFile(Ticket lot[], int n) {
@@ -226,15 +78,131 @@ void loadFromFile(Ticket lot[], int n) {
 
     int id, type;
     string plate;
-    time_t t;
-    bool occ;
+    int occInt;
 
-    while (fin >> id >> plate >> type >> t >> occ) {
+    // File format: id plate type occupied(0/1)
+    while (fin >> id >> plate >> type >> occInt) {
         int idx = id - 1;
-        lot[idx].plate = plate;
-        lot[idx].type = type;
-        lot[idx].time.entry = t;
-        lot[idx].occupied = occ;
+        if (idx >= 0 && idx < n) {
+            lot[idx].plate = plate;
+            lot[idx].type = type;
+            lot[idx].occupied = (occInt != 0);
+        }
     }
     fin.close();
+}
+
+void saveToFile(Ticket lot[], int n) {
+    ofstream fout(DATA_FILE);
+    // write only occupied slots (but storing occ too keeps format simple)
+    for (int i = 0; i < n; i++) {
+        if (lot[i].occupied) {
+            fout << lot[i].id << " "
+                 << lot[i].plate << " "
+                 << lot[i].type << " "
+                 << (lot[i].occupied ? 1 : 0) << "\n";
+        }
+    }
+    fout.close();
+}
+
+void display(Ticket lot[], int n) {
+    cout << "\n--- Parking Status ---\n";
+    for (int i = 0; i < n; i++) {
+        if (lot[i].occupied) {
+            string tname = (lot[i].type == 1 ? "BIKE" : (lot[i].type == 2 ? "LTV" : "HTV"));
+            cout << "[" << lot[i].id << ":" << tname << ":" << lot[i].plate << "] ";
+        } else {
+            cout << "[ Slot " << lot[i].id << " ] ";
+        }
+        if ((i + 1) % 2 == 0) cout << endl;
+    }
+    cout << endl;
+}
+
+void AddRecord(Ticket lot[], int n) {
+    int found = -1;
+    for (int i = 0; i < n; i++) {
+        if (!lot[i].occupied) { found = i; break; }
+    }
+    if (found == -1) {
+        cout << "Parking full. No space.\n";
+        return;
+    }
+
+    cout << "Parking at Slot " << lot[found].id << "\n";
+    cout << "Enter Plate: ";
+    cin >> lot[found].plate;
+
+    cout << "Type (1=Bike, 2=LTV, 3=HTV): ";
+    cin >> lot[found].type;
+    if (lot[found].type < 1 || lot[found].type > 3) {
+        lot[found].type = 2;
+        cout << "Invalid type. Set to LTV.\n";
+    }
+
+    lot[found].occupied = true;
+
+    saveToFile(lot, n);
+    cout << "Parked. Ticket created.\n";
+}
+
+int DeleteRecord(Ticket lot[], int n) {
+    string plate;
+    cout << "Enter Plate to remove: ";
+    cin >> plate;
+
+    for (int i = 0; i < n; i++) {
+        if (lot[i].occupied && lot[i].plate == plate) {
+            // no time or billing — just remove
+            lot[i].occupied = false;
+            lot[i].plate = "EMPTY";
+            lot[i].type = 0;
+
+            saveToFile(lot, n);
+            cout << "Vehicle removed (no time tracking).\n";
+            return 0;
+        }
+    }
+    cout << "Vehicle not found.\n";
+    return -1;
+}
+
+int searchRecord(Ticket lot[], int n) {
+    string plate;
+    cout << "Enter Plate to search: ";
+    cin >> plate;
+
+    for (int i = 0; i < n; i++) {
+        if (lot[i].occupied && lot[i].plate == plate) {
+            cout << "Found at Slot " << lot[i].id << "\n";
+            string tname = (lot[i].type == 1 ? "BIKE" : (lot[i].type == 2 ? "LTV" : "HTV"));
+            cout << "Type : " << tname << "\n";
+            return 0;
+        }
+    }
+    cout << "Not found.\n";
+    return -1;
+}
+
+int updateRecord(Ticket lot[], int n) {
+    string plate;
+    cout << "Enter Plate to update: ";
+    cin >> plate;
+
+    for (int i = 0; i < n; i++) {
+        if (lot[i].occupied && lot[i].plate == plate) {
+            cout << "Slot " << lot[i].id << " selected.\n";
+            cout << "Enter new Plate (or same): ";
+            cin >> lot[i].plate;
+            cout << "Enter new Type (1=Bike,2=LTV,3=HTV): ";
+            cin >> lot[i].type;
+            if (lot[i].type < 1 || lot[i].type > 3) lot[i].type = 2;
+            saveToFile(lot, n);
+            cout << "Updated and saved.\n";
+            return 0;
+        }
+    }
+    cout << "Vehicle not found to update.\n";
+    return -1;
 }
